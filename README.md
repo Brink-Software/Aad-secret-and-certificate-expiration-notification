@@ -8,6 +8,8 @@ The function needs to know what Active Directory to query and to what Event Grid
 
 | Application Setting            | Description                                     
 | ------------------------------ | ----------------------------------------------- | 
+| EventGridConfiguration__ExpiringSecretEventType|EventType (e.g.: Ibis.AzureActiveDirectory.ExpiringSecret)|
+| EventGridConfiguration__ExpiringCertificateEventType|EventType (e.g.: Ibis.AzureActiveDirectory.ExpiringCertificate)|
 | EventGridTopicUriSetting | The [url of an Event Grid Topic](https://docs.microsoft.com/en-us/azure/event-grid/post-to-custom-topic#endpoint)
 | EventGridTopicKeySetting | The [key of an Event Grid Topic](https://docs.microsoft.com/en-us/azure/event-grid/get-access-keys)
 | NotificationConfiguration__ExpirationThresholdInDays | The number of days left before a secret or certificate expires and an event will be send)

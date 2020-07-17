@@ -19,11 +19,13 @@ namespace ExpirationDateNotifier
     {
         private readonly IGraphApiReader _graphApiReader;
         private readonly IOptions<GraphServiceCredentials> _graphServiceConfiguration;
+        private readonly IOptions<EventGridConfiguration> _eventGridConfiguration;
 
-        public NotifierFunction(IGraphApiReader graphApiReader, IOptions<GraphServiceCredentials> graphServiceConfiguration)
+        public NotifierFunction(IGraphApiReader graphApiReader, IOptions<GraphServiceCredentials> graphServiceConfiguration, IOptions<EventGridConfiguration> eventGridConfiguration)
         {
             _graphApiReader = graphApiReader;
             _graphServiceConfiguration = graphServiceConfiguration;
+            _eventGridConfiguration = eventGridConfiguration;
         }
 
         [FunctionName("ExpirationDateNotifier")]
@@ -94,7 +96,7 @@ namespace ExpirationDateNotifier
                 Id = Guid.NewGuid().ToString(),
                 DataVersion = "1.0",
                 EventTime = DateTime.UtcNow,
-                EventType = "Ibis.AzureActiveDirectory.ExpiringSecret",
+                EventType = _eventGridConfiguration.Value.ExpiringSecretEventType,
                 Subject = $"{_graphServiceConfiguration.Value.TenantId}/{secret.AppRegistration.AppId}",
                 // Workaround for event grid not being able to serialize anonymous objects: https://github.com/Azure/azure-sdk-for-net/issues/4199
                 Data = JObject.FromObject(new
@@ -116,7 +118,7 @@ namespace ExpirationDateNotifier
                 Id = Guid.NewGuid().ToString(),
                 DataVersion = "1.0",
                 EventTime = DateTime.UtcNow,
-                EventType = "Ibis.AzureActiveDirectory.ExpiringCertificate",
+                EventType = _eventGridConfiguration.Value.ExpiringCertificateEventType,
                 Subject = $"{_graphServiceConfiguration.Value.TenantId}/{certificate.AppRegistration.AppId}",
                 // Workaround for event grid not being able to serialize anonymous objects: https://github.com/Azure/azure-sdk-for-net/issues/4199
                 Data = JObject.FromObject(new
