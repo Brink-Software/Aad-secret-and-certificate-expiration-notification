@@ -1,5 +1,5 @@
 # Introduction 
-This repo contains an Azure Function (v3 / .Net Core 3.1) that will publish events using the Azure Event Grid when a secret or certificate belonging to an Azure Active Directory App Registration is about to expir.
+This repo contains an Azure Function (v3 / .Net Core 3.1) that will publish events using the Azure Event Grid when a secret or certificate belonging to an Azure Active Directory App Registration is about to expire.
 
 Function execution is based on a timer. Each run the configurated Azure Active Directory will be queried for about to expire app registration secrets and certificates. After the first run it will only notify on new about to expire app registration secrets and certificates.
 
