@@ -8,6 +8,7 @@ The function needs to know what Active Directory to query and to what Event Grid
 
 | Application Setting            | Description                                     
 | ------------------------------ | ----------------------------------------------- | 
+| TimerSchedule|[Timer schedule](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer?tabs=csharp#ncrontab-expressions) (e.g.: "0 30 6 * * *" which is, run at 6.30 every day)|
 | EventGridConfiguration__ExpiringSecretEventType|EventType (e.g.: Ibis.AzureActiveDirectory.ExpiringSecret)|
 | EventGridConfiguration__ExpiringCertificateEventType|EventType (e.g.: Ibis.AzureActiveDirectory.ExpiringCertificate)|
 | EventGridTopicUriSetting | The [url of an Event Grid Topic](https://docs.microsoft.com/en-us/azure/event-grid/post-to-custom-topic#endpoint)
