@@ -30,7 +30,7 @@ namespace ExpirationDateNotifier
 
         [FunctionName("ExpirationDateNotifier")]
         public async Task Run(
-            [TimerTrigger("0 */5 * * * *")]TimerInfo myTimer,
+            [TimerTrigger("%TimerSchedule%")]TimerInfo myTimer,
             [EventGrid(TopicEndpointUri = "EventGridTopicUriSetting", TopicKeySetting = "EventGridTopicKeySetting")] IAsyncCollector<EventGridEvent> outputEvents,
             ILogger log,
             [DurableClient] IDurableEntityClient entityClient)
