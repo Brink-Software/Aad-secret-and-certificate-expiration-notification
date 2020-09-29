@@ -37,6 +37,7 @@ namespace ExpirationDateNotifier
         {
             // Get expiring secrets and certificates (subjects) from Azure AD
             var expiringSubjectsInAad = await _graphApiReader.ReadExpiringSubjectsAsync();
+            log.LogInformation("Found {Count} expiring subjects.", expiringSubjectsInAad.Count);
 
             // Get known soon-to-be-expired registrations
             var entities = await entityClient.ListEntitiesAsync(new EntityQuery
@@ -45,6 +46,7 @@ namespace ExpirationDateNotifier
                 FetchState = true
             }, CancellationToken.None);
             var knownExpiringSubjects = entities.Entities.Where(e => e.State != null).ToList();
+            log.LogInformation("Found {Count} known subjects.", knownExpiringSubjects.Count);
 
             await RemoveKnownRegistrationsNoLongerInAad(log, entityClient, knownExpiringSubjects, expiringSubjectsInAad);
 
@@ -52,15 +54,18 @@ namespace ExpirationDateNotifier
             foreach (var subject in expiringSubjectsInAad.Where(subjectInAad =>
                  !knownExpiringSubjectIds.Contains(subjectInAad.Id)))
             {
+                await outputEvents.AddAsync(subject.ODataType == "microsoft.graph.passwordCredential" ?
+                    CreateExpiringSecretEvent(subject) :
+                    CreateExpiringCertificateEvent(subject));
+
                 await entityClient.SignalEntityAsync<ISubjectEntity>(subject.Id, subjectEntity =>
                 {
                     subjectEntity.CreateOrUpdate(subject);
-                    log.LogInformation($"{subject} {subject.Id} done");
+                    log.LogInformation(LogEvent.ExpiringSubjectDeleted,
+                        "Notified subject of type {ODataType} with id {Id} named {SubjectDisplayName} for app with id {AppId} named {AppDisplayName}.",
+                        subject.ODataType, subject.Id, subject.DisplayName, subject.AppRegistration.AppId,
+                        subject.AppRegistration.DisplayName);
                 });
-
-                await outputEvents.AddAsync(subject.ODataType == "microsoft.graph.passwordCredential" ? 
-                    CreateExpiringSecretEvent(subject) : 
-                    CreateExpiringCertificateEvent(subject));
             }
         }
 

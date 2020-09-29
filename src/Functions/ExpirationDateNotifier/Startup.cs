@@ -25,6 +25,12 @@ namespace ExpirationDateNotifier
                     configuration.GetSection(nameof(GraphServiceCredentials)).Bind(settings);
                 });
 
+            builder.Services.AddOptions<EventGridConfiguration>()
+                .Configure<IConfiguration>((settings, configuration) =>
+                {
+                    configuration.GetSection(nameof(EventGridConfiguration)).Bind(settings);
+                });
+
             builder.Services.AddSingleton<IGraphApiReader, GraphApiReader>();
         }
     }
