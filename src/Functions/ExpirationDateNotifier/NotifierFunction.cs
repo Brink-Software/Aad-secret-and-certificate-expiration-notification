@@ -20,12 +20,17 @@ namespace ExpirationDateNotifier
         private readonly IGraphApiReader _graphApiReader;
         private readonly IOptions<GraphServiceCredentials> _graphServiceConfiguration;
         private readonly IOptions<EventGridConfiguration> _eventGridConfiguration;
+        private readonly IOptions<NotificationConfiguration> _notificationConfiguration;
 
-        public NotifierFunction(IGraphApiReader graphApiReader, IOptions<GraphServiceCredentials> graphServiceConfiguration, IOptions<EventGridConfiguration> eventGridConfiguration)
+        public NotifierFunction(IGraphApiReader graphApiReader, 
+            IOptions<GraphServiceCredentials> graphServiceConfiguration, 
+            IOptions<EventGridConfiguration> eventGridConfiguration,
+            IOptions<NotificationConfiguration> notificationConfiguration)
         {
             _graphApiReader = graphApiReader;
             _graphServiceConfiguration = graphServiceConfiguration;
             _eventGridConfiguration = eventGridConfiguration;
+            _notificationConfiguration = notificationConfiguration;
         }
 
         [FunctionName("ExpirationDateNotifier")]
@@ -52,7 +57,8 @@ namespace ExpirationDateNotifier
 
             var knownExpiringSubjectIds = knownExpiringSubjects.Select(entity => entity.EntityId.EntityKey);
             foreach (var subject in expiringSubjectsInAad.Where(subjectInAad =>
-                 !knownExpiringSubjectIds.Contains(subjectInAad.Id)))
+                 !knownExpiringSubjectIds.Contains(subjectInAad.Id) 
+                 || subjectInAad.DaysLeft % _notificationConfiguration.Value.ExpirationThresholdInDays == 0))
             {
                 await outputEvents.AddAsync(subject.ODataType == "microsoft.graph.passwordCredential" ?
                     CreateExpiringSecretEvent(subject) :
