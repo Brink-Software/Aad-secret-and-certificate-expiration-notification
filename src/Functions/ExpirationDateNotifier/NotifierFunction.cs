@@ -1,17 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Azure.Messaging.EventGrid;
 using ExpirationDateNotifier.Configuration;
 using ExpirationDateNotifier.Entities;
-using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ExpirationDateNotifier
 {
@@ -22,8 +21,8 @@ namespace ExpirationDateNotifier
         private readonly IOptions<EventGridConfiguration> _eventGridConfiguration;
         private readonly IOptions<NotificationConfiguration> _notificationConfiguration;
 
-        public NotifierFunction(IGraphApiReader graphApiReader, 
-            IOptions<GraphServiceCredentials> graphServiceConfiguration, 
+        public NotifierFunction(IGraphApiReader graphApiReader,
+            IOptions<GraphServiceCredentials> graphServiceConfiguration,
             IOptions<EventGridConfiguration> eventGridConfiguration,
             IOptions<NotificationConfiguration> notificationConfiguration)
         {
@@ -35,7 +34,7 @@ namespace ExpirationDateNotifier
 
         [FunctionName("ExpirationDateNotifier")]
         public async Task Run(
-            [TimerTrigger("%TimerSchedule%")]TimerInfo myTimer,
+            [TimerTrigger("%TimerSchedule%")] TimerInfo myTimer,
             [EventGrid(TopicEndpointUri = "EventGridTopicUriSetting", TopicKeySetting = "EventGridTopicKeySetting")] IAsyncCollector<EventGridEvent> outputEvents,
             ILogger log,
             [DurableClient] IDurableEntityClient entityClient)
@@ -57,7 +56,7 @@ namespace ExpirationDateNotifier
 
             var knownExpiringSubjectIds = knownExpiringSubjects.Select(entity => entity.EntityId.EntityKey);
             foreach (var subject in expiringSubjectsInAad.Where(subjectInAad =>
-                 !knownExpiringSubjectIds.Contains(subjectInAad.Id) 
+                 !knownExpiringSubjectIds.Contains(subjectInAad.Id)
                  || subjectInAad.DaysLeft % _notificationConfiguration.Value.ExpirationThresholdInDays == 0))
             {
                 await outputEvents.AddAsync(subject.ODataType == "microsoft.graph.passwordCredential" ?
@@ -102,45 +101,44 @@ namespace ExpirationDateNotifier
 
         private EventGridEvent CreateExpiringSecretEvent(Subject secret)
         {
-            return new EventGridEvent
+            return new EventGridEvent(
+                    $"{_graphServiceConfiguration.Value.TenantId}/{secret.AppRegistration.AppId}",
+                    _eventGridConfiguration.Value.ExpiringSecretEventType,
+                    "1.0",
+                    new
+                    {
+                        secret.AppRegistration,
+                        secret.StartDateTime,
+                        secret.EndDateTime,
+                        secret.DaysLeft,
+                        Description = secret.DisplayName,
+                        ValueHint = secret.Context
+                    })
             {
                 Id = Guid.NewGuid().ToString(),
-                DataVersion = "1.0",
                 EventTime = DateTime.UtcNow,
-                EventType = _eventGridConfiguration.Value.ExpiringSecretEventType,
-                Subject = $"{_graphServiceConfiguration.Value.TenantId}/{secret.AppRegistration.AppId}",
-                // Workaround for event grid not being able to serialize anonymous objects: https://github.com/Azure/azure-sdk-for-net/issues/4199
-                Data = JObject.FromObject(new
-                {
-                    secret.AppRegistration,
-                    secret.StartDateTime,
-                    secret.EndDateTime,
-                    secret.DaysLeft,
-                    Description = secret.DisplayName,
-                    ValueHint = secret.Context
-                })
             };
         }
 
         private EventGridEvent CreateExpiringCertificateEvent(Subject certificate)
         {
-            return new EventGridEvent
+            return new EventGridEvent(
+                    $"{_graphServiceConfiguration.Value.TenantId}/{certificate.AppRegistration.AppId}",
+                    _eventGridConfiguration.Value.ExpiringCertificateEventType,
+                    "1.0",
+                    new
+                    {
+                        certificate.AppRegistration,
+                        certificate.DaysLeft,
+                        certificate.DisplayName,
+                        certificate.StartDateTime,
+                        certificate.EndDateTime,
+                        Thumbprint = certificate.Context
+                    }
+                )
             {
                 Id = Guid.NewGuid().ToString(),
-                DataVersion = "1.0",
                 EventTime = DateTime.UtcNow,
-                EventType = _eventGridConfiguration.Value.ExpiringCertificateEventType,
-                Subject = $"{_graphServiceConfiguration.Value.TenantId}/{certificate.AppRegistration.AppId}",
-                // Workaround for event grid not being able to serialize anonymous objects: https://github.com/Azure/azure-sdk-for-net/issues/4199
-                Data = JObject.FromObject(new
-                {
-                    certificate.AppRegistration,
-                    certificate.DaysLeft,
-                    certificate.DisplayName,
-                    certificate.StartDateTime,
-                    certificate.EndDateTime,
-                    Thumbprint = certificate.Context
-                })
             };
         }
     }
